@@ -62,9 +62,7 @@ def _suggested(result: dict, key: str) -> str | None:
 
 
 @pytest.mark.usefixtures("mock_which")
-async def test_spawn(
-    hass: HomeAssistant, binary: str, mock_version: AsyncMock
-) -> None:
+async def test_spawn(hass: HomeAssistant, binary: str, mock_version: AsyncMock) -> None:
     """Choosing to run lotse checks the binary and creates the entry."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_USER}

@@ -49,7 +49,7 @@
   },
   "exceptions": {
     "api_version": {
-      "message": "lotse speaks control API version {daemon}, but this integration needs a version compatible with {client}."
+      "message": "lotse speaks control API version {daemon}, but this integration needs a version compatible with {client}"
     },
     "cannot_connect": {
       "message": "Could not connect to lotse: {error}"

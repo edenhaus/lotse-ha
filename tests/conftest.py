@@ -1,7 +1,7 @@
 """Fixtures for the lotse integration tests."""
 
 import asyncio
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Callable, Generator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -127,12 +127,16 @@ class MockClients:
         self.paths: list[str] = []
         self.connect_errors: list[BaseException] = []
         """Raised by the next clients' `connect`, one each, in order."""
+        self.configure: list[Callable[[MagicMock], object]] = []
+        """Applied to the next clients, one each, in order."""
 
     def __call__(self, socket_path: str, **kwargs: Any) -> MagicMock:
         """Create the next client."""
         client = _mock_client()
         if self.connect_errors:
             client.connect.side_effect = self.connect_errors.pop(0)
+        if self.configure:
+            self.configure.pop(0)(client)
         self.clients.append(client)
         self.paths.append(socket_path)
         return client
@@ -154,7 +158,11 @@ def _mock_client() -> MagicMock:
     closed: asyncio.Future[Any] = asyncio.get_running_loop().create_future()
     client.closed = closed
     """Set its result to drop the connection."""
-    client.wait_closed = AsyncMock(side_effect=lambda: asyncio.shield(closed))
+
+    async def _wait_closed() -> Any:
+        return await asyncio.shield(closed)
+
+    client.wait_closed = AsyncMock(side_effect=_wait_closed)
     client.unsubscribe_id = AsyncMock()
     client.subscriptions = []
     """Every session subscription opened or adopted, in order."""
@@ -202,11 +210,22 @@ async def mock_server() -> AsyncGenerator[MagicMock]:
     """Patch the daemon Home Assistant runs."""
     with patch("custom_components.lotse.LotseServer", autospec=True) as server_class:
         server = server_class.return_value
-        exited: asyncio.Future[int] = asyncio.get_running_loop().create_future()
-        server.exited = exited
-        """Set its result to make the daemon exit."""
+        loop = asyncio.get_running_loop()
+        exited: list[asyncio.Future[int]] = [loop.create_future()]
+
+        def _exit(code: int) -> None:
+            """Make the running daemon exit with `code`; a restarted one runs on."""
+            future = exited[0]
+            exited[0] = loop.create_future()
+            future.set_result(code)
+
+        server.exit = _exit
+
+        async def _wait() -> int:
+            return await asyncio.shield(exited[0])
+
+        server.async_wait.side_effect = _wait
         server.async_ensure_running.return_value = SPAWN_SOCKET_PATH
-        server.async_wait.side_effect = lambda: asyncio.shield(exited)
         server.pid = 4242
         yield server
 
@@ -254,10 +273,8 @@ async def init_integration(
 TEST_DOMAIN = "test"
 
 
-@pytest.fixture
-async def camera(hass: HomeAssistant, init_integration: MockConfigEntry) -> MockCamera:
-    """A camera of another integration, set up after lotse."""
-    camera = MockCamera("camera_unique_id")
+async def async_setup_camera(hass: HomeAssistant, camera: MockCamera) -> None:
+    """Set up a camera of another integration."""
 
     async def async_setup_entry_init(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await hass.config_entries.async_forward_entry_setups(entry, [Platform.CAMERA])
@@ -283,4 +300,11 @@ async def camera(hass: HomeAssistant, init_integration: MockConfigEntry) -> Mock
     with mock_config_flow(TEST_DOMAIN, ConfigFlow):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
+
+
+@pytest.fixture
+async def camera(hass: HomeAssistant, init_integration: MockConfigEntry) -> MockCamera:
+    """A camera of another integration, set up after lotse."""
+    camera = MockCamera("camera_unique_id")
+    await async_setup_camera(hass, camera)
     return camera
