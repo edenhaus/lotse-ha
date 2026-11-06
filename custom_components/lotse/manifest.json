@@ -1,0 +1,17 @@
+{
+  "domain": "lotse",
+  "name": "lotse",
+  "codeowners": ["@edenhaus"],
+  "config_flow": true,
+  "dependencies": ["camera"],
+  "documentation": "https://github.com/edenhaus/lotse-ha",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/edenhaus/lotse-ha/issues",
+  "loggers": ["lotse_client"],
+  "requirements": [
+    "lotse-client @ git+https://github.com/edenhaus/lotse-clients@54b907abc438feb75a68a7ad75649030d4430732#subdirectory=python"
+  ],
+  "single_config_entry": true,
+  "version": "0.0.0"
+}
