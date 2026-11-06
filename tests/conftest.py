@@ -112,7 +112,17 @@ STREAMS = StreamList.from_dict(
                 ],
                 "tracks": [],
                 "stats": {},
-            }
+            },
+            "garage": {
+                "stream_id": "garage",
+                "state": "idle",
+                "preload": True,
+                "since": "2026-11-06T10:00:00Z",
+                "sessions": [],
+                "sources": [],
+                "tracks": [],
+                "stats": {},
+            },
         }
     }
 )
@@ -198,6 +208,7 @@ def mock_clients() -> Generator[MockClients]:
     """Patch `LotseClient` wherever the integration creates one."""
     clients = MockClients()
     with (
+        patch("custom_components.lotse.LotseClient", side_effect=clients),
         patch("custom_components.lotse.connection.LotseClient", side_effect=clients),
         patch("custom_components.lotse.server.LotseClient", side_effect=clients),
         patch("custom_components.lotse.config_flow.LotseClient", side_effect=clients),

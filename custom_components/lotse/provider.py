@@ -108,9 +108,8 @@ class _Session:
     """Home Assistant closed the session."""
 
 
-def stream_id_for(camera: Camera) -> str:
+def stream_id_for(entity_id: str) -> str:
     """The lotse stream id of a camera: its entity id, shortened if too long."""
-    entity_id = camera.entity_id
     if len(entity_id) <= MAX_STREAM_ID and _STREAM_ID.fullmatch(entity_id):
         return entity_id
     digest = hashlib.sha256(entity_id.encode()).hexdigest()[:16]
@@ -173,7 +172,7 @@ class LotseWebRTCProvider(CameraWebRTCProvider):
         send_message: WebRTCSendMessage,
     ) -> None:
         """Put the camera's stream and open a session for the browser's offer."""
-        stream_id = stream_id_for(camera)
+        stream_id = stream_id_for(camera.entity_id)
         session = _Session(session_id, stream_id, send_message, opening=True)
         self._sessions[session_id] = session
         if (client := self._connection.client) is None:
@@ -249,7 +248,7 @@ class LotseWebRTCProvider(CameraWebRTCProvider):
     @override
     async def async_unregister_camera(self, camera: Camera) -> None:
         """Delete the camera's stream; its sessions end with it."""
-        stream_id = stream_id_for(camera)
+        stream_id = stream_id_for(camera.entity_id)
         self._cameras.pop(stream_id, None)
         if (client := self._connection.client) is None:
             return
@@ -266,7 +265,7 @@ class LotseWebRTCProvider(CameraWebRTCProvider):
         settings = await get_dynamic_camera_stream_settings(
             self._hass, camera.entity_id
         )
-        if stream_id_for(camera) in self._cameras or settings.preload_stream:
+        if stream_id_for(camera.entity_id) in self._cameras or settings.preload_stream:
             await self._async_put_camera(camera)
 
     async def async_on_connected(self, client: LotseClient) -> None:
@@ -306,7 +305,7 @@ class LotseWebRTCProvider(CameraWebRTCProvider):
         settings = await get_dynamic_camera_stream_settings(
             self._hass, camera.entity_id
         )
-        stream_id = stream_id_for(camera)
+        stream_id = stream_id_for(camera.entity_id)
         result = await client.stream.put(
             stream_id=stream_id,
             sources=[SourceSpec(url=source)],
@@ -324,7 +323,7 @@ class LotseWebRTCProvider(CameraWebRTCProvider):
 
     async def _async_put_camera(self, camera: Camera) -> None:
         """Put the camera's stream outside an offer, logging what fails."""
-        stream_id = stream_id_for(camera)
+        stream_id = stream_id_for(camera.entity_id)
         if (client := self._connection.client) is None:
             # Put once the connection is back.
             self._cameras[stream_id] = camera

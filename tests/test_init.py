@@ -1,18 +1,19 @@
 """Tests for setting up and unloading the lotse integration."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 from lotse_client import ApiVersionError, CannotConnectError, ConnectionClosedError
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.lotse import LotseData
-from custom_components.lotse.provider import LotseWebRTCProvider
+from custom_components.lotse.provider import DATA_HANDOVER, LotseWebRTCProvider
 from custom_components.lotse.server import LotseServerError
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
 
+from . import MockCamera
 from .conftest import SOCKET_PATH, SPAWN_SOCKET_PATH, MockClients
 
 
@@ -134,3 +135,44 @@ async def test_spawn_api_version(
     assert not await hass.config_entries.async_setup(mock_spawn_entry.entry_id)
     assert mock_spawn_entry.state is ConfigEntryState.SETUP_ERROR
     mock_server.async_stop.assert_awaited_once()
+
+
+async def test_remove_deletes_camera_streams(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    camera: MockCamera,
+    mock_clients: MockClients,
+) -> None:
+    """Removing the entry deletes the cameras' streams from a running daemon."""
+    await camera.async_handle_async_webrtc_offer("v=0", "session", Mock())
+    assert await hass.config_entries.async_remove(init_integration.entry_id)
+    assert DATA_HANDOVER not in hass.data
+    client = mock_clients.last
+    assert mock_clients.paths[-1] == SOCKET_PATH
+    client.stream.delete.assert_awaited_once_with(stream_id="camera.front_door")
+    client.close.assert_awaited_once()
+
+
+async def test_remove_cannot_connect(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    mock_clients: MockClients,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A daemon that cannot be reached on removal is only logged."""
+    mock_clients.connect_errors = [CannotConnectError("refused")]
+    assert await hass.config_entries.async_remove(init_integration.entry_id)
+    assert "Could not delete the cameras' streams from lotse: refused" in caplog.text
+
+
+async def test_remove_spawned(
+    hass: HomeAssistant,
+    mock_spawn_entry: MockConfigEntry,
+    mock_server: MagicMock,
+    mock_clients: MockClients,
+) -> None:
+    """Removing an entry that ran the daemon connects to nothing."""
+    mock_spawn_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_spawn_entry.entry_id)
+    assert await hass.config_entries.async_remove(mock_spawn_entry.entry_id)
+    assert len(mock_clients.clients) == 1

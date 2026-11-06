@@ -3,9 +3,12 @@
 from dataclasses import dataclass
 import logging
 
-from lotse_client import ApiVersionError, LotseError
+from lotse_client import ApiVersionError, LotseClient, LotseError
 
-from homeassistant.components.camera import async_register_webrtc_provider
+from homeassistant.components.camera import (
+    DOMAIN as CAMERA_DOMAIN,
+    async_register_webrtc_provider,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant
@@ -13,7 +16,7 @@ from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 
 from .connection import LotseConnection
 from .const import CONF_BINARY, CONF_MODE, CONF_SOCKET, DOMAIN, MODE_SPAWN
-from .provider import LotseWebRTCProvider
+from .provider import DATA_HANDOVER, LotseWebRTCProvider, stream_id_for
 from .server import LotseServer, LotseServerError
 
 _LOGGER = logging.getLogger(__name__)
@@ -83,3 +86,27 @@ async def async_unload_entry(hass: HomeAssistant, entry: LotseConfigEntry) -> bo
     data.provider.async_unload(handover=data.connection.server is None)
     await data.connection.async_stop()
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: LotseConfigEntry) -> None:
+    """Delete the cameras' streams from a daemon that keeps running."""
+    # No entry follows that could adopt the sessions left behind.
+    hass.data.pop(DATA_HANDOVER, None)
+    if entry.data[CONF_MODE] == MODE_SPAWN:
+        return
+    camera_streams = {
+        stream_id_for(entity_id)
+        for entity_id in hass.states.async_entity_ids(CAMERA_DOMAIN)
+    }
+    client = LotseClient(entry.data[CONF_SOCKET])
+    try:
+        await client.connect()
+        try:
+            streams = await client.stream.list()
+            for stream_id in sorted(camera_streams & streams.streams.keys()):
+                await client.stream.delete(stream_id=stream_id)
+                _LOGGER.debug("Deleted stream %s", stream_id)
+        finally:
+            await client.close()
+    except LotseError as err:
+        _LOGGER.warning("Could not delete the cameras' streams from lotse: %s", err)

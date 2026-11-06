@@ -124,6 +124,35 @@
         'tracks': list([
         ]),
       }),
+      'garage': dict({
+        'backchannel': dict({
+        }),
+        'preload': True,
+        'prerecord_ms': 0,
+        'recordings': list([
+        ]),
+        'sessions': list([
+        ]),
+        'since': '2026-11-06T10:00:00Z',
+        'sources': list([
+        ]),
+        'state': 'idle',
+        'stats': dict({
+          'av_sync_lost': 0,
+          'datagrams_rejected': 0,
+          'frames_dropped': 0,
+          'frames_over_browser_limit': 0,
+          'packets_lost': 0,
+          'packets_out_of_order': 0,
+          'recording_bytes': 0,
+          'recording_gaps': 0,
+          'recordings_completed': 0,
+          'recordings_started': 0,
+        }),
+        'stream_id': 'garage',
+        'tracks': list([
+        ]),
+      }),
     }),
   })
 # ---

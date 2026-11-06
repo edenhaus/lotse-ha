@@ -839,15 +839,15 @@ def test_ice_servers() -> None:
 )
 def test_stream_id(entity_id: str, expected: str) -> None:
     """A camera's stream id is its entity id."""
-    assert stream_id_for(Mock(entity_id=entity_id)) == expected
+    assert stream_id_for(entity_id) == expected
 
 
 @pytest.mark.parametrize("entity_id", ["camera." + "a" * 200, "camera.tür"])
 def test_stream_id_shortened(entity_id: str) -> None:
     """An entity id lotse does not take as a stream id is shortened or replaced."""
-    stream_id = stream_id_for(Mock(entity_id=entity_id))
+    stream_id = stream_id_for(entity_id)
     assert len(stream_id) <= MAX_STREAM_ID
     assert stream_id.startswith("camera.")
     assert all(c.isascii() and (c.isalnum() or c in "._-") for c in stream_id)
-    assert stream_id == stream_id_for(Mock(entity_id=entity_id))
-    assert stream_id != stream_id_for(Mock(entity_id=entity_id + "b"))
+    assert stream_id == stream_id_for(entity_id)
+    assert stream_id != stream_id_for(entity_id + "b")
