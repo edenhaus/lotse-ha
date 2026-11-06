@@ -1,0 +1,19 @@
+# Contributor tooling and tasks. `mise install`, then `mise tasks` for the list.
+# The checks live in .pre-commit-config.yaml; CI (.github/workflows/ci.yml) runs
+# the same ones, the tests, hassfest and the HACS validation.
+
+[tools]
+prek = "0.5.10"
+uv = "0.13.7" # Python, the dependencies (uv.lock) and the tools run through it
+
+# The git hooks are installed on every `mise install`.
+[hooks]
+postinstall = "prek install"
+
+[tasks.check]
+description = "Every prek hook on all files: ruff, ruff format, mypy and file hygiene"
+run = "prek run --all-files --show-diff-on-failure"
+
+[tasks.test]
+description = "The tests with the 100 % coverage gate (pytest arguments pass through)"
+run = "uv run --locked pytest"

@@ -1,0 +1,28 @@
+# The checks, run by prek on `git commit` (on the changed files) and by
+# `mise run check` (on all files). The tests are not a hook: `mise run test`.
+repos:
+  # prek implements these natively.
+  - repo: builtin
+    hooks:
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+        exclude: ^tests/__snapshots__/
+      - id: trailing-whitespace
+        exclude: ^tests/__snapshots__/
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.3 # the ruff in pyproject.toml; update both together
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: uv run --locked mypy
+        language: system
+        types: [python]
+        pass_filenames: false
