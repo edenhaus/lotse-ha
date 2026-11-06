@@ -253,7 +253,7 @@ testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-addopts = "--cov=custom_components.lotse --cov-report=term-missing"
+addopts = "--cov=custom_components.lotse --cov-report=term-missing --snapshot-dirname=snapshots"
 
 [tool.coverage.run]
 source = ["custom_components.lotse"]

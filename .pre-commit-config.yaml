@@ -9,9 +9,9 @@ repos:
       - id: check-toml
       - id: check-yaml
       - id: end-of-file-fixer
-        exclude: ^tests/__snapshots__/
+        exclude: ^tests/snapshots/
       - id: trailing-whitespace
-        exclude: ^tests/__snapshots__/
+        exclude: ^tests/snapshots/
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.17.3 # the ruff in pyproject.toml; update both together
     hooks:
