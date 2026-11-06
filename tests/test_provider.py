@@ -717,6 +717,44 @@ async def test_candidates_while_disconnected(
     )
 
 
+async def test_close_session_while_adopting(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    camera: MockCamera,
+    mock_clients: MockClients,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A session closed while it is being adopted is closed on the daemon."""
+    caplog.set_level(logging.DEBUG)
+    await _offer(camera, mock_clients)
+    release = asyncio.Event()
+
+    def _slow_adopt(client: MagicMock) -> None:
+        adopt = client.session.adopt.side_effect
+
+        async def _adopt(**kwargs: Any) -> Subscription[SessionEvent]:
+            await release.wait()
+            return adopt(**kwargs)
+
+        client.session.adopt.side_effect = _adopt
+        client.session.close.side_effect = CommandError(
+            "session_not_found", "no such session", {}
+        )
+
+    mock_clients.configure = [_slow_adopt]
+    _drop(mock_clients.last)
+    await run_tasks(hass)
+    new = mock_clients.last
+    camera.close_webrtc_session(SESSION_ID)
+    await run_tasks(hass)
+    new.session.close.assert_awaited_once_with(session_id=SESSION_ID)
+    assert f"Closing session {SESSION_ID} failed: session_not_found" in caplog.text
+
+    release.set()
+    await run_tasks(hass)
+    new.unsubscribe_id.assert_awaited_once_with(new.subscriptions[-1].id)
+
+
 async def test_close_session_while_disconnected(
     hass: HomeAssistant,
     init_integration: MockConfigEntry,

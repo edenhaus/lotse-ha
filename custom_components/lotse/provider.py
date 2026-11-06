@@ -225,16 +225,19 @@ class LotseWebRTCProvider(CameraWebRTCProvider):
             return
         session.closed = True
         _LOGGER.debug("Closing session %s", session_id)
-        if (
-            session.subscription is not None
-            and session.client is not None
-            and session.client is self._connection.client
-        ):
-            self._entry.async_create_background_task(
-                self._hass,
-                self._async_unsubscribe(session_id, session.subscription),
-                f"{DOMAIN} close session",
-            )
+        client = self._connection.client
+        if client is None or session.opening:
+            # The daemon ends an orphaned session after its grace period, and
+            # one being opened is ended once its offer is answered.
+            return
+        if session.subscription is not None and session.client is client:
+            coro = self._async_unsubscribe(session_id, session.subscription)
+        else:
+            # Lost with its connection and not adopted yet.
+            coro = self._async_close_on_daemon(client, session_id)
+        self._entry.async_create_background_task(
+            self._hass, coro, f"{DOMAIN} close session"
+        )
 
     @override
     async def async_register_camera(self, camera: Camera) -> None:
@@ -470,6 +473,15 @@ class LotseWebRTCProvider(CameraWebRTCProvider):
             )
         except LotseError as err:
             _LOGGER.debug("Candidate for session %s not sent: %s", session_id, err)
+
+    async def _async_close_on_daemon(
+        self, client: LotseClient, session_id: str
+    ) -> None:
+        """End a session this connection does not own; never raises."""
+        try:
+            await client.session.close(session_id=session_id)
+        except LotseError as err:
+            _LOGGER.debug("Closing session %s failed: %s", session_id, err)
 
     async def _async_unsubscribe(
         self, session_id: str, subscription: Subscription[SessionEvent]
