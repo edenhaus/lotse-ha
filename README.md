@@ -9,6 +9,21 @@ over WebRTC.
 The integration is written to Home Assistant core's standards so it can move
 into core later. Until then it is a custom integration, installable with HACS.
 
+## Use cases
+
+- **Live view in the dashboard.** A camera card or the camera's dialog opens
+  a WebRTC session through lotse: the browser plays the camera's stream with
+  low latency, without Home Assistant transcoding it.
+- **Viewing from outside your home.** Over Home Assistant Cloud, the browser
+  gets TURN servers for its connection; Home Assistant passes the same ones to
+  lotse, so the live view also works when the browser is not on your network.
+- **Fast start for the cameras you open most.** Turn on *Preload stream* in
+  a camera's settings: lotse keeps that camera connected without viewers, so
+  a live view starts with a picture at once instead of after the camera's
+  connection and its next keyframe.
+- **A rotated or mirrored mount.** Set the camera's *Orientation*: lotse
+  passes it on, and browsers that support it turn the picture.
+
 ## Requirements
 
 - Home Assistant 2026.10 or newer.
@@ -55,6 +70,51 @@ Choose how Home Assistant reaches the daemon:
 Only one lotse entry can exist. To switch between the two, or change the
 path, use **Reconfigure** on the entry.
 
+## Examples
+
+### Home Assistant runs lotse
+
+With the `lotse` binary at `/usr/local/bin/lotse` on the Home Assistant host
+(or in its container):
+
+1. **Add integration → lotse → Run lotse**.
+2. Keep the suggested *lotse binary* or enter `/usr/local/bin/lotse`, and
+   submit. The entry is created once `lotse --version` names lotse; Home
+   Assistant then starts the daemon and connects to it.
+
+### lotse in its own container next to Home Assistant
+
+lotse's release image (`ghcr.io/edenhaus/lotse`, published without a
+`latest` tag: pin the release's tag or digest) serves its control socket at
+`/run/lotse/lotse.sock`. Share that directory with Home Assistant through a
+volume. Both containers run as root, the user lotse admits on its socket, and
+lotse drops its privileges after binding. Host networking lets browsers reach
+lotse's WebRTC port (UDP 18556) directly.
+
+```yaml
+services:
+  lotse:
+    image: ghcr.io/edenhaus/lotse:<release>
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - lotse-socket:/run/lotse
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./config:/config
+      - lotse-socket:/run/lotse
+
+volumes:
+  lotse-socket:
+```
+
+Then **Add integration → lotse → Connect to a running lotse**, and keep the
+suggested *Control socket*, `/run/lotse/lotse.sock`.
+
 ## How it works
 
 - Home Assistant holds one connection to the daemon's control socket and
@@ -84,13 +144,17 @@ path, use **Reconfigure** on the entry.
 - Running and supervising the daemon, or connecting to a running one.
 - Diagnostics: the daemon's `info`, its counters and stream states, with
   addresses and credentials redacted.
+- Repair issues when lotse runs with its sandbox off, or without one of its
+  layers (privilege drop, `no_new_privs`, seccomp, Landlock filesystem
+  rules). They are checked on every connection and withdrawn once fixed.
 
 ## Not supported yet
 
 - Snapshots: the integration does not provide camera images; Home Assistant
   takes them from the camera's own integration or its stream as before.
 - Recordings and two-way audio, which lotse supports, are not used yet.
-- Repair issues for a missing sandbox layer or a troubled stream.
+- Repair issues for a stream that keeps failing; the daemon's errors reach
+  the browser and the log.
 - If another integration registers a WebRTC provider for the same URL
   schemes, Home Assistant picks one of the two per camera, in no defined
   order. Deterministic selection needs a change in Home Assistant.

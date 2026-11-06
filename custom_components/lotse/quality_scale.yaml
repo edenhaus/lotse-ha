@@ -73,12 +73,12 @@ rules:
     status: exempt
     comment: There is no discovery.
   docs-data-update: done
-  docs-examples: todo
+  docs-examples: done
   docs-known-limitations: done
   docs-supported-devices: done
   docs-supported-functions: done
   docs-troubleshooting: done
-  docs-use-cases: todo
+  docs-use-cases: done
   dynamic-devices:
     status: exempt
     comment: The integration has no devices.
