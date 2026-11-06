@@ -1,0 +1,129 @@
+# serializer version: 1
+# name: test_diagnostics
+  dict({
+    'connected': True,
+    'entry_data': dict({
+      'mode': 'connect',
+      'socket': '/run/lotse/lotse.sock',
+    }),
+    'info': dict({
+      'build': dict({
+        'rustc': '1.98.0',
+        'target': 'x86_64-unknown-linux-musl',
+      }),
+      'codecs': dict({
+        'audio': list([
+          'opus',
+          'pcmu',
+        ]),
+        'video': list([
+          'h264',
+          'h265',
+        ]),
+      }),
+      'features': list([
+        'session_adopt',
+        'turn',
+      ]),
+      'limits': dict({
+        'max_connections': 8,
+        'max_prerecord_bytes': 0,
+        'max_prerecord_ms': 0,
+        'max_recording_ms': 0,
+        'max_recordings': 0,
+        'max_recordings_per_stream': 0,
+        'max_sessions': 256,
+        'max_sessions_per_stream': 16,
+        'max_streams': 256,
+        'session_grace_ms': 10000,
+      }),
+      'outputs': list([
+        'webrtc',
+      ]),
+      'sandbox': dict({
+        'gid': 65534,
+        'landlock': dict({
+          'abi': 3,
+          'fs': 'enforced',
+          'net': 'unavailable',
+        }),
+        'mode': 'on',
+        'no_new_privs': True,
+        'seccomp': 'enforced',
+        'uid': 65534,
+      }),
+      'schemes': list([
+        'rtsp',
+        'rtsps',
+      ]),
+      'version': '0.1.0',
+    }),
+    'metrics': dict({
+      'sessions': 1,
+      'streams': dict({
+        'camera.front_door': dict({
+          'av_sync_lost': 0,
+          'datagrams_rejected': 0,
+          'frames_dropped': 0,
+          'frames_over_browser_limit': 0,
+          'packets_lost': 0,
+          'packets_out_of_order': 0,
+          'recording_bytes': 0,
+          'recording_gaps': 0,
+          'recordings_completed': 0,
+          'recordings_started': 0,
+        }),
+      }),
+      'supervisor': dict({
+        'pid': 4242,
+        'uptime_ms': 60000,
+      }),
+      'worker_restarts': 0,
+      'workers': dict({
+      }),
+    }),
+    'server_pid': None,
+    'sessions': 0,
+    'streams': dict({
+      'camera.front_door': dict({
+        'backchannel': dict({
+        }),
+        'preload': False,
+        'prerecord_ms': 0,
+        'recordings': list([
+        ]),
+        'sessions': list([
+          'session-1',
+        ]),
+        'since': '2026-11-06T10:00:00Z',
+        'sources': list([
+          dict({
+            'connection': dict({
+              'id': 'c1',
+            }),
+            'protocol': 'rtsp',
+            'reconnects': 0,
+            'state': 'live',
+            'url': '**REDACTED**',
+          }),
+        ]),
+        'state': 'live',
+        'stats': dict({
+          'av_sync_lost': 0,
+          'datagrams_rejected': 0,
+          'frames_dropped': 0,
+          'frames_over_browser_limit': 0,
+          'packets_lost': 0,
+          'packets_out_of_order': 0,
+          'recording_bytes': 0,
+          'recording_gaps': 0,
+          'recordings_completed': 0,
+          'recordings_started': 0,
+        }),
+        'stream_id': 'camera.front_door',
+        'tracks': list([
+        ]),
+      }),
+    }),
+  })
+# ---
