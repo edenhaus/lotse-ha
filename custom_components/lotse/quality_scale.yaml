@@ -1,0 +1,114 @@
+rules:
+  # Bronze
+  action-setup:
+    status: exempt
+    comment: The integration has no actions.
+  appropriate-polling:
+    status: exempt
+    comment: Nothing is polled; the daemon pushes events over its control connection.
+  brands: todo
+  common-modules: done
+  config-flow: done
+  config-flow-test-coverage: done
+  dependency-transparency:
+    status: todo
+    comment: lotse-client is installed from a git commit; it is not released to PyPI yet.
+  docs-actions:
+    status: exempt
+    comment: The integration has no actions.
+  docs-conditions:
+    status: exempt
+    comment: The integration has no conditions.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  docs-triggers:
+    status: exempt
+    comment: The integration has no triggers.
+  entity-event-setup:
+    status: exempt
+    comment: The integration has no entities.
+  entity-unique-id:
+    status: exempt
+    comment: The integration has no entities.
+  has-entity-name:
+    status: exempt
+    comment: The integration has no entities.
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+
+  # Silver
+  action-exceptions:
+    status: exempt
+    comment: The integration has no actions.
+  config-entry-unloading: done
+  docs-configuration-parameters:
+    status: exempt
+    comment: The integration has no options flow.
+  docs-installation-parameters: done
+  entity-unavailable:
+    status: exempt
+    comment: The integration has no entities.
+  integration-owner: done
+  log-when-unavailable: done
+  parallel-updates:
+    status: exempt
+    comment: The integration has no entity platforms.
+  reauthentication-flow:
+    status: exempt
+    comment: There is no authentication; access to the control socket is the authorization.
+  test-coverage: done
+
+  # Gold
+  devices:
+    status: exempt
+    comment: The integration provides WebRTC for other integrations' cameras and has no devices of its own.
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: The daemon is local and reached through a socket path; there is nothing to discover.
+  discovery-update-info:
+    status: exempt
+    comment: There is no discovery.
+  docs-data-update: done
+  docs-examples: todo
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: todo
+  dynamic-devices:
+    status: exempt
+    comment: The integration has no devices.
+  entity-category:
+    status: exempt
+    comment: The integration has no entities.
+  entity-device-class:
+    status: exempt
+    comment: The integration has no entities.
+  entity-disabled-by-default:
+    status: exempt
+    comment: The integration has no entities.
+  entity-translations:
+    status: exempt
+    comment: The integration has no entities.
+  exception-translations: done
+  icon-translations:
+    status: exempt
+    comment: The integration has no entities or actions.
+  reconfiguration-flow: done
+  repair-issues:
+    status: todo
+    comment: Raise repair issues from the daemon's `info.sandbox` and from streams that report problems.
+  stale-devices:
+    status: exempt
+    comment: The integration has no devices.
+
+  # Platinum
+  async-dependency: done
+  inject-websession:
+    status: exempt
+    comment: The client's HTTP session is bound to the daemon's Unix socket; Home Assistant's shared session speaks TCP.
+  strict-typing: done
