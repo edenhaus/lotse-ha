@@ -54,5 +54,15 @@
     "cannot_connect": {
       "message": "Could not connect to lotse: {error}"
     }
+  },
+  "issues": {
+    "sandbox_degraded": {
+      "title": "lotse runs with a weakened sandbox",
+      "description": "lotse reads camera streams from the network, so each of its processes is hardened in layers. The running lotse lacks these layers: {layers}.\n\nStart lotse as root so it can drop its privileges itself, on a kernel with seccomp and Landlock enabled. Home Assistant checks again on every connection to lotse and removes this message once the layers are in place."
+    },
+    "sandbox_off": {
+      "title": "lotse runs without its sandbox",
+      "description": "lotse was started with its sandbox off, so its processes run without the hardening that limits what a compromised camera stream could do.\n\nStart lotse with its sandbox on, the default: without `--sandbox off` or `LOTSE_SANDBOX=off`. Home Assistant checks again on every connection to lotse and removes this message once the sandbox is on."
+    }
   }
 }

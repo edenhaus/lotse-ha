@@ -16,6 +16,7 @@ from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 
 from .connection import LotseConnection
 from .const import CONF_BINARY, CONF_MODE, CONF_SOCKET, DOMAIN, MODE_SPAWN
+from .issues import async_delete_sandbox_issues, async_update_sandbox_issues
 from .provider import DATA_HANDOVER, LotseWebRTCProvider, stream_id_for
 from .server import LotseServer, LotseServerError
 
@@ -59,8 +60,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: LotseConfigEntry) -> boo
         ) from err
 
     provider = LotseWebRTCProvider(hass, entry, connection)
-    connection.async_add_listener(provider.async_on_connected)
     entry.runtime_data = LotseData(connection, provider)
+
+    async def _async_on_connected(client: LotseClient) -> None:
+        """Check the new daemon's sandbox, then take the sessions back."""
+        if (info := connection.info) is not None:
+            async_update_sandbox_issues(hass, info.sandbox)
+        await provider.async_on_connected(client)
+
+    connection.async_add_listener(_async_on_connected)
 
     async def _async_on_stop(_event: Event) -> None:
         """Stop the daemon with Home Assistant."""
@@ -74,7 +82,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: LotseConfigEntry) -> boo
     # Sessions the previous entry left behind are adopted on this connection.
     provider.async_take_handover()
     if (client := connection.client) is not None:
-        await provider.async_on_connected(client)
+        await _async_on_connected(client)
     return True
 
 
@@ -85,6 +93,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: LotseConfigEntry) -> bo
     # so the next entry can adopt them.
     data.provider.async_unload(handover=data.connection.server is None)
     await data.connection.async_stop()
+    async_delete_sandbox_issues(hass)
     return True
 
 

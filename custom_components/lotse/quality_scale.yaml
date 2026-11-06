@@ -99,9 +99,7 @@ rules:
     status: exempt
     comment: The integration has no entities or actions.
   reconfiguration-flow: done
-  repair-issues:
-    status: todo
-    comment: Raise repair issues from the daemon's `info.sandbox` and from streams that report problems.
+  repair-issues: done
   stale-devices:
     status: exempt
     comment: The integration has no devices.
