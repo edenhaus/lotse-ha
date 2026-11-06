@@ -1,0 +1,58 @@
+{
+  "config": {
+    "abort": {
+      "reconfigure_successful": "Re-configuration was successful",
+      "single_instance_allowed": "Already configured. Only a single configuration possible."
+    },
+    "error": {
+      "api_version": "This lotse speaks a control API version this integration does not support. Update lotse or the integration so they match.",
+      "binary_not_executable": "The file is not executable.",
+      "binary_not_found": "There is no file at this path.",
+      "cannot_connect": "Failed to connect",
+      "invalid_binary": "The file is not a lotse binary: running it with `--version` did not print a lotse version.",
+      "unknown": "Unexpected error"
+    },
+    "step": {
+      "connect": {
+        "data": {
+          "socket": "Control socket"
+        },
+        "data_description": {
+          "socket": "Path of the control socket of the running lotse, as its `--socket` option names it. Home Assistant must be allowed to connect to it."
+        },
+        "description": "Connect to a lotse that runs outside Home Assistant."
+      },
+      "reconfigure": {
+        "description": "Choose how Home Assistant reaches lotse.",
+        "menu_options": {
+          "connect": "Connect to a running lotse",
+          "spawn": "Run lotse"
+        }
+      },
+      "spawn": {
+        "data": {
+          "binary": "lotse binary"
+        },
+        "data_description": {
+          "binary": "Path of the lotse executable. Home Assistant starts it, restarts it when it fails and stops it on shutdown."
+        },
+        "description": "Let Home Assistant run lotse."
+      },
+      "user": {
+        "description": "lotse is a media daemon that serves your cameras to the browser over WebRTC. Choose how Home Assistant reaches it.",
+        "menu_options": {
+          "connect": "Connect to a running lotse",
+          "spawn": "Run lotse"
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "api_version": {
+      "message": "lotse speaks control API version {daemon}, but this integration needs a version compatible with {client}."
+    },
+    "cannot_connect": {
+      "message": "Could not connect to lotse: {error}"
+    }
+  }
+}
