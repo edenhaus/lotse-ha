@@ -3,8 +3,8 @@
 A Home Assistant integration that makes [lotse](https://github.com/edenhaus/lotse),
 a media daemon for IP cameras, the WebRTC provider of your cameras: when a
 camera's live view opens in Home Assistant, lotse reads the camera's stream
-(RTSP and the other schemes the daemon reports) and sends it to the browser
-over WebRTC.
+(RTSP, or HLS and MPEG-TS over HTTP, as far as the daemon's build reads them)
+and sends it to the browser over WebRTC.
 
 The integration is written to Home Assistant core's standards so it can move
 into core later. Until then it is a custom integration, installable with HACS.
@@ -138,8 +138,10 @@ suggested *Control socket*, `/run/lotse/lotse.sock`.
 
 ## What works
 
-- Live view over WebRTC for every camera whose stream source scheme lotse
-  reports (`rtsp`, `rtsps`, …), with trickled ICE in both directions.
+- Live view over WebRTC for every camera whose stream source is an `rtsp`,
+  `rtsps`, `http` or `https` URL, if the daemon's build reads that protocol,
+  with trickled ICE in both directions. The source keeps lotse's defaults:
+  RTSP over TCP, no backchannel, TLS trusting the system's roots.
 - Orientation and preload preferences.
 - Running and supervising the daemon, or connecting to a running one.
 - Diagnostics: the daemon's `info`, its counters and stream states, with

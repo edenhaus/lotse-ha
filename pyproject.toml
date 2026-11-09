@@ -29,7 +29,7 @@ dev = [
 package = false
 
 [tool.uv.sources]
-lotse-client = { git = "https://github.com/edenhaus/lotse-clients", rev = "54b907abc438feb75a68a7ad75649030d4430732", subdirectory = "python" }
+lotse-client = { git = "https://github.com/edenhaus/lotse-clients", rev = "3104f6fcd5e902740f6eac0d0279e4c6e229650f", subdirectory = "python" }
 
 # The ruff rules are Home Assistant core's (its pyproject.toml), so the
 # integration can move into core unchanged.

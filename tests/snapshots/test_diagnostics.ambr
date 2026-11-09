@@ -40,6 +40,11 @@
       'outputs': list([
         'webrtc',
       ]),
+      'protocols': list([
+        'rtsp',
+        'rtsps',
+        'webrtc',
+      ]),
       'sandbox': dict({
         'gid': 65534,
         'landlock': dict({
@@ -52,10 +57,6 @@
         'seccomp': 'enforced',
         'uid': 65534,
       }),
-      'schemes': list([
-        'rtsp',
-        'rtsps',
-      ]),
       'version': '0.1.0',
     }),
     'metrics': dict({
@@ -101,10 +102,15 @@
             'connection': dict({
               'id': 'c1',
             }),
-            'protocol': 'rtsp',
             'reconnects': 0,
+            'source': dict({
+              'backchannel': False,
+              'protocol': 'rtsp',
+              'timeout_ms': 10000,
+              'transport': 'tcp',
+              'url': '**REDACTED**',
+            }),
             'state': 'live',
-            'url': '**REDACTED**',
           }),
         ]),
         'state': 'live',

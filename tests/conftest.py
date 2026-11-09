@@ -62,7 +62,8 @@ INFO = InfoResult.from_dict(
     {
         "version": "0.1.0",
         "build": {"target": "x86_64-unknown-linux-musl", "rustc": "1.98.0"},
-        "schemes": ["rtsp", "rtsps"],
+        # A build without the HTTP source: lotse's default build has it too.
+        "protocols": ["rtsp", "rtsps", "webrtc"],
         "outputs": ["webrtc"],
         "features": ["session_adopt", "turn"],
         "codecs": {"video": ["h264", "h265"], "audio": ["opus", "pcmu"]},
@@ -103,8 +104,10 @@ STREAMS = StreamList.from_dict(
                 "sessions": ["session-1"],
                 "sources": [
                     {
-                        "url": "rtsp://****@192.0.2.10:554/h264",
-                        "protocol": "rtsp",
+                        "source": {
+                            "protocol": "rtsp",
+                            "url": "rtsp://****@192.0.2.10:554/h264",
+                        },
                         "state": "live",
                         "reconnects": 0,
                         "connection": {"id": "c1"},

@@ -14,7 +14,11 @@ from lotse_client import (
     Subscription,
 )
 from lotse_client.models import (
+    HttpSource,
+    HttpsSource,
     IceServer,
+    RtspSource,
+    RtspsSource,
     SessionEvent,
     SessionEventAnswer,
     SessionEventCandidate,
@@ -22,7 +26,6 @@ from lotse_client.models import (
     SessionEventSession,
     SessionEventState,
     SessionEventWarning,
-    SourceSpec,
 )
 import pytest
 from pytest_homeassistant_custom_component.common import (
@@ -32,12 +35,17 @@ from pytest_homeassistant_custom_component.common import (
 from pytest_homeassistant_custom_component.typing import WebSocketGenerator
 from webrtc_models import RTCConfiguration, RTCIceCandidateInit, RTCIceServer
 
-from custom_components.lotse.const import ERROR_NO_STREAM_SOURCE, ERROR_UNAVAILABLE
+from custom_components.lotse.const import (
+    ERROR_NO_STREAM_SOURCE,
+    ERROR_UNAVAILABLE,
+    ERROR_UNSUPPORTED_STREAM_SOURCE,
+)
 from custom_components.lotse.provider import (
     MAX_PENDING_CANDIDATES,
     MAX_STREAM_ID,
     LotseWebRTCProvider,
     ice_servers_for,
+    source_for,
     stream_id_for,
 )
 from homeassistant.components.camera import (
@@ -104,7 +112,11 @@ async def test_provider_registered(
     [
         ("rtsp://192.0.2.10/h264", True),
         ("RTSPS://192.0.2.10/h264", True),
+        # A protocol lotse reads from a URL, but this build did not register.
         ("http://192.0.2.10/stream.m3u8", False),
+        # A protocol this build registered, but whose signaling the client
+        # relays: it takes no URL.
+        ("webrtc://192.0.2.10/stream", False),
         ("no scheme", False),
     ],
 )
@@ -114,11 +126,30 @@ async def test_is_supported(
     stream_source: str,
     supported: bool,
 ) -> None:
-    """A stream source is supported when the daemon reads its scheme."""
+    """A stream source is supported when the daemon reads URLs of its scheme."""
     provider = _provider(init_integration)
     assert provider.async_is_supported(stream_source) is supported
     init_integration.runtime_data.connection.info = None
     assert not provider.async_is_supported(stream_source)
+
+
+@pytest.mark.parametrize(
+    ("stream_source", "expected"),
+    [
+        ("rtsp://192.0.2.10/h264", RtspSource(url="rtsp://192.0.2.10/h264")),
+        ("RTSPS://192.0.2.10/h264", RtspsSource(url="RTSPS://192.0.2.10/h264")),
+        ("http://192.0.2.10/a.m3u8", HttpSource(url="http://192.0.2.10/a.m3u8")),
+        ("https://192.0.2.10/a.m3u8", HttpsSource(url="https://192.0.2.10/a.m3u8")),
+        ("webrtc://192.0.2.10/stream", None),
+        ("no scheme", None),
+    ],
+)
+def test_source_for(
+    stream_source: str,
+    expected: RtspSource | RtspsSource | HttpSource | HttpsSource | None,
+) -> None:
+    """A stream source URL becomes the lotse source of its scheme."""
+    assert source_for(stream_source) == expected
 
 
 async def test_offer(
@@ -136,7 +167,7 @@ async def test_offer(
 
     client.stream.put.assert_awaited_once_with(
         stream_id=STREAM_ID,
-        sources=[SourceSpec(url=STREAM_SOURCE)],
+        sources=[RtspSource(url=STREAM_SOURCE)],
         orientation="no_transform",
         preload=False,
     )
@@ -325,6 +356,13 @@ async def test_put_failures_logged(
     await provider.async_on_camera_prefs_update(camera)
     assert f"Camera of stream {STREAM_ID} has no stream source" in caplog.text
 
+    camera.set_stream_source("webrtc://192.0.2.10/stream")
+    await provider.async_on_camera_prefs_update(camera)
+    assert (
+        f"Camera of stream {STREAM_ID} has a stream source lotse does not read"
+        in caplog.text
+    )
+
 
 async def test_unregister_camera(
     hass: HomeAssistant,
@@ -403,6 +441,24 @@ async def test_offer_without_stream_source(
     send_message.assert_called_once_with(
         WebRTCError(ERROR_NO_STREAM_SOURCE, "The camera has no stream source")
     )
+
+
+async def test_offer_unsupported_stream_source(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    camera: MockCamera,
+    mock_clients: MockClients,
+) -> None:
+    """A camera whose stream source lotse does not read fails the offer."""
+    camera.set_stream_source("webrtc://192.0.2.10/stream")
+    send_message, _ = await _offer(camera, mock_clients)
+    send_message.assert_called_once_with(
+        WebRTCError(
+            ERROR_UNSUPPORTED_STREAM_SOURCE,
+            "lotse does not read the camera's stream source",
+        )
+    )
+    mock_clients.last.stream.put.assert_not_awaited()
 
 
 async def test_offer_while_disconnected(

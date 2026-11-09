@@ -15,11 +15,16 @@ import hashlib
 import logging
 import re
 from typing import Final, override
+from urllib.parse import urlsplit
 
 from lotse_client import CommandError, LotseClient, LotseError, Subscription
 from lotse_client.models import (
+    HttpSource,
+    HttpsSource,
     IceServer,
     Orientation as LotseOrientation,
+    RtspSource,
+    RtspsSource,
     SessionEvent,
     SessionEventAnswer,
     SessionEventCandidate,
@@ -27,7 +32,6 @@ from lotse_client.models import (
     SessionEventSession,
     SessionEventState,
     SessionEventWarning,
-    SourceSpec,
 )
 from webrtc_models import RTCIceCandidateInit
 
@@ -46,7 +50,12 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.util.hass_dict import HassKey
 
 from .connection import LotseConnection
-from .const import DOMAIN, ERROR_NO_STREAM_SOURCE, ERROR_UNAVAILABLE
+from .const import (
+    DOMAIN,
+    ERROR_NO_STREAM_SOURCE,
+    ERROR_UNAVAILABLE,
+    ERROR_UNSUPPORTED_STREAM_SOURCE,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,8 +82,25 @@ MAX_PENDING_CANDIDATES: Final = 32
 """Browser candidates kept for a session that has no subscription yet."""
 
 
+URL_SOURCES: Final[
+    dict[str, type[RtspSource | RtspsSource | HttpSource | HttpsSource]]
+] = {
+    "rtsp": RtspSource,
+    "rtsps": RtspsSource,
+    "http": HttpSource,
+    "https": HttpsSource,
+}
+"""lotse's source for each URL scheme it reads, which is also the source's
+protocol in `info`. lotse's other protocols, `webrtc` among them, take no URL:
+the client relays their signaling."""
+
+
 class _NoStreamSourceError(Exception):
     """The camera has no stream source."""
+
+
+class _UnsupportedStreamSourceError(Exception):
+    """The camera's stream source has a scheme lotse does not read."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +141,19 @@ def stream_id_for(entity_id: str) -> str:
     digest = hashlib.sha256(entity_id.encode()).hexdigest()[:16]
     prefix = re.sub(r"[^A-Za-z0-9._-]", "_", entity_id)[: MAX_STREAM_ID - 17]
     return f"{prefix}-{digest}"
+
+
+def source_for(
+    stream_source: str,
+) -> RtspSource | RtspsSource | HttpSource | HttpsSource | None:
+    """The lotse source that reads a stream source URL, chosen by its scheme.
+
+    `None` if lotse reads no URL of that scheme. The source's options keep
+    lotse's defaults.
+    """
+    if (source := URL_SOURCES.get(urlsplit(stream_source).scheme)) is None:
+        return None
+    return source(url=stream_source)
 
 
 def ice_servers_for(camera: Camera) -> list[IceServer]:
@@ -161,7 +200,8 @@ class LotseWebRTCProvider(CameraWebRTCProvider):
         """Whether the daemon reads the stream source's URL scheme."""
         if (info := self._connection.info) is None:
             return False
-        return stream_source.partition(":")[0].lower() in info.schemes
+        scheme = urlsplit(stream_source).scheme
+        return scheme in URL_SOURCES and scheme in info.protocols
 
     @override
     async def async_handle_async_webrtc_offer(
@@ -189,6 +229,13 @@ class LotseWebRTCProvider(CameraWebRTCProvider):
         except _NoStreamSourceError:
             self._async_fail(
                 session, ERROR_NO_STREAM_SOURCE, "The camera has no stream source"
+            )
+            return
+        except _UnsupportedStreamSourceError:
+            self._async_fail(
+                session,
+                ERROR_UNSUPPORTED_STREAM_SOURCE,
+                "lotse does not read the camera's stream source",
             )
             return
         except CommandError as err:
@@ -303,15 +350,17 @@ class LotseWebRTCProvider(CameraWebRTCProvider):
 
     async def _async_put_stream(self, client: LotseClient, camera: Camera) -> None:
         """Put the camera's stream with its current source and preferences."""
-        if not (source := await camera.stream_source()):
+        if not (stream_source := await camera.stream_source()):
             raise _NoStreamSourceError
+        if (source := source_for(stream_source)) is None:
+            raise _UnsupportedStreamSourceError
         settings = await get_dynamic_camera_stream_settings(
             self._hass, camera.entity_id
         )
         stream_id = stream_id_for(camera.entity_id)
         result = await client.stream.put(
             stream_id=stream_id,
-            sources=[SourceSpec(url=source)],
+            sources=[source],
             orientation=ORIENTATIONS[settings.orientation],
             preload=settings.preload_stream,
         )
@@ -335,6 +384,11 @@ class LotseWebRTCProvider(CameraWebRTCProvider):
             await self._async_put_stream(client, camera)
         except _NoStreamSourceError:
             _LOGGER.debug("Camera of stream %s has no stream source", stream_id)
+        except _UnsupportedStreamSourceError:
+            _LOGGER.debug(
+                "Camera of stream %s has a stream source lotse does not read",
+                stream_id,
+            )
         except LotseError as err:
             _LOGGER.warning("Could not put stream %s: %s", stream_id, err)
 

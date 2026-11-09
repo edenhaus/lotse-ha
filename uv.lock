@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.14.2"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -1559,7 +1559,7 @@ wheels = [
 [[package]]
 name = "lotse-client"
 version = "0.0.0"
-source = { git = "https://github.com/edenhaus/lotse-clients?subdirectory=python&rev=54b907abc438feb75a68a7ad75649030d4430732#54b907abc438feb75a68a7ad75649030d4430732" }
+source = { git = "https://github.com/edenhaus/lotse-clients?subdirectory=python&rev=3104f6fcd5e902740f6eac0d0279e4c6e229650f#3104f6fcd5e902740f6eac0d0279e4c6e229650f" }
 dependencies = [
     { name = "aiohttp" },
     { name = "mashumaro" },
@@ -1586,7 +1586,7 @@ dev = [
 [package.metadata.requires-dev]
 dev = [
     { name = "av", specifier = "==19.0.0" },
-    { name = "lotse-client", git = "https://github.com/edenhaus/lotse-clients?subdirectory=python&rev=54b907abc438feb75a68a7ad75649030d4430732" },
+    { name = "lotse-client", git = "https://github.com/edenhaus/lotse-clients?subdirectory=python&rev=3104f6fcd5e902740f6eac0d0279e4c6e229650f" },
     { name = "mypy", specifier = "==2.4.0" },
     { name = "pytest-homeassistant-custom-component", specifier = "==0.13.375" },
     { name = "pyturbojpeg", specifier = "==1.8.3" },
